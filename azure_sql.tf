@@ -1,43 +1,62 @@
-# Define resource group
-resource "azurerm_resource_group" "db-rsc" {
-  name     = "db-src"
-  location = "West Europe"
+provider "azurerm" {
+  features {}
 }
 
-# Define sql server
-resource "azurerm_sql_server" "sql_server" {
-  name                         = "sql_server"
-  resource_group_name          = azurerm_resource_group.db-src.name
-  location                     = azurerm_resource_group.db-src.location
-  version                      = "12.0"
-  administrator_login          = "myadmin"
-  administrator_login_password = "Azure@1234"
+# Variables
+variable "azure_region" {
+  default = "East US"  # Update with your desired Azure region
 }
 
-# Define sql database
-resource "azurerm_sql_database" "sql_db" {
-  name                = "sql_db"
-  resource_group_name = azurerm_resource_group.db-rsc.name
-  location            = azurerm_resource_group.db-rsc.location
-  server_name         = azurerm_sql_server.sql_server.name
-
-  depends_on = [
-    azurerm_sql_server.sql_server
-  ]
-
+variable "resource_group_name" {
+  default = "myResourceGroup"  # Update with your desired resource group name
 }
 
-# For access through internet
-resource "azurerm_sql_firewall_rule" "sql_firewall_rule" {
-  name                = "sql_firewall_rule"
-  resource_group_name = azurerm_resource_group.db-rsc.name
-  server_name         = azurerm_sql_server.sql_server.name
+variable "sql_server_name" {
+  default = "mySqlServer"  # Update with your desired SQL Server name
+}
 
-# I have add my IP only for access DB
-  start_ip_address    = "175.157.40.69" 
-  end_ip_address      = "175.157.40.69" 
+variable "database_name" {
+  default = "myDatabase"  # Update with your desired database name
+}
 
-  depends_on = [
-    azurerm_sql_server.sql_server
-  ]
+variable "administrator_login" {
+  default = "adminUser"  # Update with your desired SQL Server admin username
+}
+
+variable "administrator_password" {
+  default = "P@ssw0rd123"  # Update with your desired SQL Server admin password
+}
+
+# Create a resource group
+resource "azurerm_resource_group" "example" {
+  name     = var.resource_group_name
+  location = var.azure_region
+}
+
+# Create a SQL Server instance
+resource "azurerm_sql_server" "example" {
+  name                         = var.sql_server_name
+  resource_group_name          = azurerm_resource_group.example.name
+  location                     = var.azure_region
+  version                      = "12.0"  # Specify the desired SQL Server version
+  administrator_login          = var.administrator_login
+  administrator_login_password = var.administrator_password
+}
+
+# Create a SQL Database
+resource "azurerm_sql_database" "example" {
+  name                = var.database_name
+  resource_group_name = azurerm_resource_group.example.name
+  server_name         = azurerm_sql_server.example.name
+  edition             = "Standard"  # Specify the desired database edition (e.g., Basic, Standard, Premium)
+  collation           = "SQL_Latin1_General_CP1_CI_AS"  # Specify the desired collation
+}
+
+# Output
+output "sql_server_fqdn" {
+  value = azurerm_sql_server.example.fully_qualified_domain_name
+}
+
+output "database_endpoint" {
+  value = azurerm_sql_database.example.endpoint
 }
